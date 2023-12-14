@@ -2,4 +2,8 @@
 target = "arm-unknown-linux-gnueabihf"
 
 [target.arm-unknown-linux-gnueabihf]
-linker = "arm-linux-gnueabihf-gcc"
+linker = "../tools/arm-bcm2708/arm-rpi-4.9.3-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc"
+
+[examples]
+name = "basic"
+path = "examples/basic.rs"
