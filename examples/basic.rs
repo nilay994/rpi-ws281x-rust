@@ -9,20 +9,87 @@ use std::sync::Arc;
 use rs_ws281x::ControllerBuilder;
 use rs_ws281x::ChannelBuilder;
 use rs_ws281x::StripType;
+use rs_ws281x::Controller;
 
 // math
 use core::f32::consts::PI;
 
 // LEDs
-const BP_LED_0: u8 = 0;
-const BP_LED_1: u8 = 1;
-const BP_LED_2: u8 = 2;
-const BP_LED_3: u8 = 3;
-const BP_LED_4: u8 = 4;
-const BP_LED_5: u8 = 5;
-const BP_LED_6: u8 = 6;
-const BP_LED_7: u8 = 7;
+const BP_LED: usize = 0;
+const FR_LED: usize = 1;
+const RR_LED: usize = 2;
 
+fn init_led() -> Vec<Controller>
+{
+    let mut controller = Vec::new();
+
+    let controller0 = ControllerBuilder::new()
+            .freq(800_000)
+            .dma(10)
+            .channel(
+                0, // Channel Index
+                ChannelBuilder::new()
+                    .pin(18) // GPIO 10 = SPI0 MOSI // 18
+                    .count(2) // Number of LEDs
+                    .strip_type(StripType::Ws2812)
+                    .brightness(0) // default: 255
+                    .build(),
+            )
+            .build()
+            .unwrap();
+    let controller1 = ControllerBuilder::new()
+            .freq(800_000)
+            .dma(10)
+            .channel(
+                1, // Channel Index
+                ChannelBuilder::new()
+                    .pin(13) // GPIO 10 = SPI0 MOSI
+                    .count(2) // Number of LEDs
+                    .strip_type(StripType::Ws2812)
+                    .brightness(0) // default: 255
+                    .build(),
+            )
+            .build()
+            .unwrap();
+    let controller2 = ControllerBuilder::new()
+            .freq(800_000)
+            .dma(10)
+            .channel(
+                0, // Channel Index
+                ChannelBuilder::new()
+                    .pin(21) // GPIO 10 = SPI0 MOSI
+                    .count(8) // Number of LEDs
+                    .strip_type(StripType::Ws2812)
+                    .brightness(0) // default: 255
+                    .build(),
+            )
+            .build()
+            .unwrap();
+
+    controller.push(controller0);
+    controller.push(controller1);
+    controller.push(controller2);
+
+    return controller;
+}
+
+fn deinit_led(mut controller: Vec<Controller>)
+{
+    controller[0].set_brightness(0, 0);
+    controller[0].render().unwrap();
+    controller[0].wait().unwrap();
+
+    controller[1].set_brightness(1, 0);
+    controller[1].render().unwrap();
+    controller[1].wait().unwrap();
+
+    controller[2].set_brightness(0, 0);
+    controller[2].render().unwrap();
+    controller[2].wait().unwrap();
+    // drop(controller[0]);
+    // drop(controller[1]);
+    // drop(controller[2]);
+}
 
 /*
  * Generates strobe pattern. Shall be called every 10 ms.
@@ -83,30 +150,31 @@ fn main()
 
     // Construct a single channel controller. Note that the
     // Controller is initialized by default and is cleaned up on drop
-    let mut controller = ControllerBuilder::new()
-        .freq(800_000)
-        .dma(10)
-        .channel(
-            0, // Channel Index
-            ChannelBuilder::new()
-                .pin(18) // GPIO 10 = SPI0 MOSI
-                .count(8) // Number of LEDs
-                .strip_type(StripType::Ws2812)
-                .brightness(0) // default: 255
-                .build(),
-        )
-        .build()
-        .unwrap();
 
-    let leds = controller.leds_mut(0);
+    let mut controller = init_led();
+    let fr_led = controller[0].leds_mut(0);
+    fr_led[0] = [0xFF, 0xFF, 0xFF, 0x00];
+    fr_led[1] = [0xFF, 0xFF, 0xFF, 0x00];
 
-    for led in leds {
-        *led = [0x14, 0xFF, 0x39, 100];
+    let rr_led = controller[1].leds_mut(1);
+    rr_led[0] = [0xFF, 0xFF, 0xFF, 0x00];
+    rr_led[1] = [0xFF, 0xFF, 0xFF, 0x00];
+
+    let bp_leds = controller[2].leds_mut(1);
+    for led in bp_leds {
+        *led = [0xFF, 0xFF, 0xFF, 0x00];
     }
 
     while running.load(Ordering::SeqCst) {
-        controller.set_brightness(0, strobe(millis_elapsed) * 200);
-        controller.render().unwrap();
+        controller[0].set_brightness(0, 200);
+        controller[0].render().unwrap();
+
+        // controller[1].set_brightness(1, strobe(millis_elapsed) * 200);
+        controller[1].set_brightness(1, 200);
+        controller[1].render().unwrap();
+
+        controller[2].set_brightness(0, 200);
+        controller[2].render().unwrap();
 
         // cycles from 0 to 12 seconds
         millis_elapsed += 10;
@@ -117,9 +185,5 @@ fn main()
     println!("\n------Lego Pi------");
     println!("SIGINT/Ctrl+C received, turning off all LEDs and closing program...");
 
-    // turn off
-    controller.set_brightness(0, 0);
-    controller.render().unwrap();
-    controller.wait().unwrap();
-    drop(controller);
+    deinit_led(controller);
 }
