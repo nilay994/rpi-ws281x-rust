@@ -30,45 +30,45 @@ fn init_led() -> Vec<Controller>
                 0, // Channel Index
                 ChannelBuilder::new()
                     .pin(18) // e.g. GPIO 10 = SPI0 MOSI
-                    .count(2) // Number of LEDs
+                    .count(4) // Number of LEDs
                     .strip_type(StripType::Ws2812)
                     .brightness(0) // default: 255
                     .build(),
             )
             .build()
             .unwrap();
-    // let controller1 = ControllerBuilder::new()
-    //         .freq(800_000)
-    //         .dma(10)
-    //         .channel(
-    //             1, // Channel Index
-    //             ChannelBuilder::new()
-    //                 .pin(13) // e.g. GPIO 10 = SPI0 MOSI
-    //                 .count(8) // Number of LEDs
-    //                 .strip_type(StripType::Ws2812)
-    //                 .brightness(0) // default: 255
-    //                 .build(),
-    //         )
-    //         .build()
-    //         .unwrap();
-    // let controller2 = ControllerBuilder::new()
-    //         .freq(800_000)
-    //         .dma(10)
-    //         .channel(
-    //             0, // Channel Index
-    //             ChannelBuilder::new()
-    //                 .pin(21) // e.g. GPIO 10 = SPI0 MOSI
-    //                 .count(2) // Number of LEDs
-    //                 .strip_type(StripType::Ws2812)
-    //                 .brightness(0) // default: 255
-    //                 .build(),
-    //         )
-    //         .build()
-    //         .unwrap();
+    let controller1 = ControllerBuilder::new()
+            .freq(800_000)
+            .dma(10)
+            .channel(
+                1, // Channel Index
+                ChannelBuilder::new()
+                    .pin(13) // e.g. GPIO 10 = SPI0 MOSI
+                    .count(8) // Number of LEDs
+                    .strip_type(StripType::Ws2812)
+                    .brightness(0) // default: 255
+                    .build(),
+            )
+            .build()
+            .unwrap();
+    let controller2 = ControllerBuilder::new()
+            .freq(800_000)
+            .dma(10)
+            .channel(
+                0, // Channel Index
+                ChannelBuilder::new()
+                    .pin(21) // e.g. GPIO 10 = SPI0 MOSI
+                    .count(4) // Number of LEDs
+                    .strip_type(StripType::Ws2812)
+                    .brightness(0) // default: 255
+                    .build(),
+            )
+            .build()
+            .unwrap();
 
     controller.push(controller0);
-    // controller.push(controller1);
-    // controller.push(controller2);
+    controller.push(controller1);
+    controller.push(controller2);
 
     return controller;
 }
@@ -79,13 +79,13 @@ fn deinit_led(mut controller: Vec<Controller>)
     controller[0].render().unwrap();
     controller[0].wait().unwrap();
 
-    // controller[1].set_brightness(1, 0);
-    // controller[1].render().unwrap();
-    // controller[1].wait().unwrap();
+    controller[1].set_brightness(1, 0);
+    controller[1].render().unwrap();
+    controller[1].wait().unwrap();
 
-    // controller[2].set_brightness(0, 0);
-    // controller[2].render().unwrap();
-    // controller[2].wait().unwrap();
+    controller[2].set_brightness(0, 0);
+    controller[2].render().unwrap();
+    controller[2].wait().unwrap();
     // drop(controller[0]);
     // drop(controller[1]);
     // drop(controller[2]);
@@ -102,9 +102,9 @@ fn deinit_led(mut controller: Vec<Controller>)
  */
 fn strobe(millis_elapsed: u32) -> u8
 {
-    let on_time: u32 = 50;  // 50 ms
-    let gap: u32 = 200;     // 200 ms
-    let period: u32 = 1500; // 1500 ms
+    let on_time: u32 = 50;  // on time
+    let gap: u32 = 200;     // gap between on time
+    let period: u32 = 1500; // period of the strobe pattern
 
     if (millis_elapsed % period) < on_time {
         return 1;
@@ -155,15 +155,19 @@ fn main()
     let rr_led = controller[0].leds_mut(0);
     rr_led[0] = COLOR_RED;
     rr_led[1] = COLOR_RED;
+    rr_led[2] = COLOR_RED;
+    rr_led[3] = COLOR_RED;
 
-    // let bp_leds = controller[1].leds_mut(1);
-    // for led in bp_leds {
-    //     *led = COLOR_NEON;
-    // }
+    let bp_leds = controller[1].leds_mut(1);
+    for led in bp_leds {
+        *led = COLOR_NEON;
+    }
 
-    // let fr_led = controller[2].leds_mut(0);
-    // fr_led[0] = COLOR_WHITE;
-    // fr_led[1] = COLOR_WHITE;
+    let fr_led = controller[2].leds_mut(0);
+    fr_led[0] = COLOR_WHITE;
+    fr_led[1] = COLOR_WHITE;
+    fr_led[2] = COLOR_WHITE;
+    fr_led[3] = COLOR_WHITE;
 
     while running.load(Ordering::SeqCst) {
 
@@ -172,11 +176,11 @@ fn main()
         controller[0].set_brightness(0, strobe(millis_elapsed) * 200);
         controller[0].render().unwrap();
 
-        // controller[1].set_brightness(1, pulse(millis_elapsed));
-        // controller[1].render().unwrap();
+        controller[1].set_brightness(1, pulse(millis_elapsed));
+        controller[1].render().unwrap();
 
-        // controller[2].set_brightness(0, strobe(millis_elapsed) * 200);
-        // controller[2].render().unwrap();
+        controller[2].set_brightness(0, strobe(millis_elapsed) * 200);
+        controller[2].render().unwrap();
 
         // cycles from 0 to 12 seconds
         millis_elapsed += 10;
