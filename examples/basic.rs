@@ -92,7 +92,7 @@ fn deinit_led(mut controller: Vec<Controller>)
 }
 
 /*
- * Generates strobe pattern. Shall be called every 10 ms.
+ * Generates a strobe pattern. Shall be called every 10 ms.
  *
  * A strobe pattern has two on-times and has a time period.
  * __|""""|____|""""|_____________________
@@ -116,6 +116,53 @@ fn strobe(millis_elapsed: u32) -> u8
         return 0;
     }
 }
+
+
+/*
+ * Generates a tubelight pattern. Shall be called every 10 ms.
+ *
+ * A tubelight pattern has two strobes and then a constant on time
+ * __|""""|____|""""|_______________________|""""|____|""""|____|""""""""""""""
+ *
+ * @param millis_elapsed: Time elapsed since startup
+ * @returns 1 if LEDs should be on in the current cycle, 0 elsewise
+ */
+ fn tubelight(millis_elapsed: u32) -> u8
+ {
+    let on_time: u32 = 50;  // on time
+    let gap: u32 = 200;     // gap between on time
+    let period: u32 = 750; // period of the strobe pattern
+    static mut TUBELIGHT_ON: bool = false;
+
+    unsafe {
+    // TODO: use random time intervals and instead use a for loop
+    if TUBELIGHT_ON == false {
+        if millis_elapsed < on_time {
+            return 1;
+        } else if millis_elapsed < (on_time + gap) {
+            return 0;
+        } else if millis_elapsed < (on_time + gap + on_time) {
+            return 1;
+        } else if millis_elapsed < (on_time + gap + on_time + period) {
+            return 0;
+        } else if millis_elapsed < (on_time + gap + on_time + period + on_time) {
+            return 1;
+        } else if millis_elapsed < (on_time + gap + on_time + period + on_time + gap) {
+            return 0;
+        } else if millis_elapsed < (on_time + gap + on_time + period + on_time + gap + on_time) {
+            return 1;
+        } else if millis_elapsed < (on_time + gap + on_time + period + on_time + gap + on_time + gap) {
+            return 0;
+        } else {
+            TUBELIGHT_ON = true;
+            return 1;
+        }
+    } else {
+        /* tubelight emulation finished */
+        return 1;
+    }
+    }
+ }
 
 /*
  * Generates pulse pattern. Shall be called every 10 ms.
@@ -171,15 +218,14 @@ fn main()
 
     while running.load(Ordering::SeqCst) {
 
-        // TODO: only render when changes to reduce DMA load
-
+        // TODO: only render when state change to reduce DMA load
         controller[0].set_brightness(0, strobe(millis_elapsed) * 200);
         controller[0].render().unwrap();
 
         controller[1].set_brightness(1, pulse(millis_elapsed));
         controller[1].render().unwrap();
 
-        controller[2].set_brightness(0, strobe(millis_elapsed) * 200);
+        controller[2].set_brightness(0, tubelight(millis_elapsed) * 200);
         controller[2].render().unwrap();
 
         // cycles from 0 to 12 seconds
