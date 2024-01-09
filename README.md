@@ -1,3 +1,19 @@
+## My readme
+Goal was to control LEDs on the Lego Porsche. I chose to cross compile rust code for the ARMv6 processor on Raspberry Pi Zero, and use the below bindings for the WS2812 LEDs.
+
+A few hickups as I was setting this up, the binaries that were cross compiled with the `arm-unknown-linux-gnueabihf` toolchain might have been for another ARM architecture. It was clear that it was architecture related, I executed the binary on the ARMv6 and it returned something like "Illegal instruction". The only way to navigate through this was to get the entire deprecated toolchain for ARMv6 pushed on Raspberry Pi's own `tools` repository. As the path of the linker was pointed to the cloned toolchain, the crossed compiled binaries worked on ARMv6 right away.
+
+Compiling the `basic.rs` in this repository required running `cargo build --examples`, after which a `./basic` was generated in the `target/debug` path. An `scp` into the Pi and giving the executable permission with `chmod uga+wrx basic` got it to work.
+
+A shortcoming in the library/controller seemed to be the inability of setting brightness of individual LEDs on a strip. Changing the brightness implied doing so for all the LEDs on the configured channel.
+
+I had the following in mind:
+- a pulse with neon color on the bottom of the car.
+- a strobe with red color on the rear lights.
+- a strobe-like with white on the front lights.
+
+This required all the 3 channels to be separate, and the library gave enough pins to write into the NeoPixels over PWM, PCM & SPI channels.
+
 [![crates.io](http://meritbadge.herokuapp.com/rs_ws281x)](https://crates.io/crates/rs_ws281x)
 [![docs.rs](https://docs.rs/rs_ws281x/badge.svg)](https://docs.rs/rs_ws281x)
 # Welcome to the Rust Bindings for rpi_ws281x
@@ -28,12 +44,12 @@ a PR!  I would love a helping hand, just have to make sure things don't
 get too messy either.
 
 ## Compiling on Raspbian
-- Install Rust from https://rustup.rs/ 
+- Install Rust from https://rustup.rs/
 - Run `rustup target add arm-unknown-linux-gnueabihf`
 - Install `sudo apt install libclang-dev`
 
 ## Cross-compiling on Ubuntu/Debian
-- Install Rust from https://rustup.rs/ 
+- Install Rust from https://rustup.rs/
 - Run `rustup target add arm-unknown-linux-gnueabihf`
 - Install `sudo apt install libclang-dev gcc-arm-linux-gnueabihf`
 
